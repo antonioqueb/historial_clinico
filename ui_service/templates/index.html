@@ -4,48 +4,235 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consulta Médica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            margin: auto;
+        }
+
+        form {
+            display: none; /* Ocultar todos los formularios al inicio */
+        }
+
+        form.active {
+            display: block;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #startRecord, #stopRecord {
+            width: 48%;
+            padding: 10px;
+            margin: 5px 1%;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #stopRecord {
+            background-color: #FF5733;
+        }
+
+        #startRecord:hover {
+            background-color: #0056b3;
+        }
+
+        #stopRecord:hover {
+            background-color: #c44125;
+        }
+
+        .nav-buttons {
+            text-align: center;
+        }
+
+        .nav-buttons button {
+            width: auto;
+            margin: 5px;
+        }
+
+        ul {
+            padding: 0;
+            list-style-type: none;
+            margin-bottom: 15px;
+        }
+
+        li {
+            padding: 10px;
+            background-color: #f8d7da;
+            border-left: 5px solid #f5c6cb;
+            margin-bottom: 10px;
+            color: #721c24;
+            border-radius: 5px;
+        }
+
+        li.success {
+            background-color: #d4edda;
+            border-left: 5px solid #c3e6cb;
+            color: #155724;
+        }
+    </style>
 </head>
 <body>
-    <h1>Consulta Médica</h1>
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-          {% for category, message in messages %}
-            <li class="{{ category }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    <div class="container">
+        <h1>Consulta Médica</h1>
 
-    <h2>Login</h2>
-    <form method="POST" action="/login">
-        <label>Usuario:</label>
-        <input type="text" name="username" required>
-        <label>Contraseña:</label>
-        <input type="password" name="password" required>
-        <button type="submit">Iniciar Sesión</button>
-    </form>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul>
+              {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
 
-    <h2>Iniciar Consulta</h2>
-    <form method="POST" action="/start-consultation" enctype="multipart/form-data">
-        <label>Nombre del Paciente:</label>
-        <input type="text" name="patient_name">
-        <label>Archivo de Audio:</label>
-        <input type="file" name="audio" accept="audio/*" required>
-        <button type="submit">Iniciar Consulta</button>
-    </form>
+        <!-- Botones de navegación -->
+        <div class="nav-buttons">
+            <button onclick="showForm('loginForm')">Login</button>
+            <button onclick="showForm('consultationForm')">Iniciar Consulta</button>
+            <button onclick="showForm('generateReportForm')">Generar Reporte</button>
+        </div>
 
-    <h2>Generar Reporte</h2>
-    <form method="POST" action="/generate-report">
-        <label>Nombre del Paciente:</label>
-        <input type="text" name="patient_name" required>
-        <label>Formato:</label>
-        <select name="format">
-            <option value="pdf">PDF</option>
-            <option value="docx">Docx</option>
-        </select>
-        <button type="submit">Generar Reporte</button>
-    </form>
+        <!-- Formulario de Login -->
+        <form id="loginForm" class="active" method="POST" action="/login">
+            <label>Usuario:</label>
+            <input type="text" name="username" required>
+            <label>Contraseña:</label>
+            <input type="password" name="password" required>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+
+        <!-- Formulario de Consulta -->
+        <form id="consultationForm" method="POST" action="/start-consultation" enctype="multipart/form-data">
+            <label>Nombre del Paciente:</label>
+            <input type="text" name="patient_name">
+            <label>Archivo de Audio:</label>
+            <input type="file" name="audio" id="audioFile" accept="audio/*" required>
+            <button type="submit">Iniciar Consulta</button>
+
+            <h2>Grabar Audio</h2>
+            <button id="startRecord">Iniciar Grabación</button>
+            <button id="stopRecord" disabled>Detener Grabación</button>
+            <audio id="audioPlayback" controls></audio>
+        </form>
+
+        <!-- Formulario para Generar Reporte -->
+        <form id="generateReportForm" method="POST" action="/generate-report">
+            <label>Nombre del Paciente:</label>
+            <input type="text" name="patient_name" required>
+            <label>Formato:</label>
+            <select name="format">
+                <option value="pdf">PDF</option>
+                <option value="docx">Docx</option>
+            </select>
+            <button type="submit">Generar Reporte</button>
+        </form>
+    </div>
+
+    <script>
+        // Función para mostrar el formulario correspondiente y ocultar los demás
+        function showForm(formId) {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(formId).classList.add('active');
+        }
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        const startRecordButton = document.getElementById('startRecord');
+        const stopRecordButton = document.getElementById('stopRecord');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const audioFileInput = document.getElementById('audioFile');
+
+        startRecordButton.addEventListener('click', async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayback.src = audioUrl;
+
+                // Convert the Blob into a File and
+                                // Convert the Blob into a File and set it as the input value
+                                const audioFile = new File([audioBlob], "audio.wav", { type: "audio/wav" });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(audioFile);
+                audioFileInput.files = dataTransfer.files;
+            };
+
+            mediaRecorder.start();
+            startRecordButton.disabled = true;
+            stopRecordButton.disabled = false;
+        });
+
+        stopRecordButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            stopRecordButton.disabled = true;
+            startRecordButton.disabled = false;
+        });
+    </script>
 </body>
 </html>
+
