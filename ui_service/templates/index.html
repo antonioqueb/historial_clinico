@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta Médica</title>
+</head>
+<body>
+    <h1>Consulta Médica</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+          {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <h2>Login</h2>
+    <form method="POST" action="/login">
+        <label>Usuario:</label>
+        <input type="text" name="username" required>
+        <label>Contraseña:</label>
+        <input type="password" name="password" required>
+        <button type="submit">Iniciar Sesión</button>
+    </form>
+
+    <h2>Iniciar Consulta</h2>
+    <form method="POST" action="/start-consultation" enctype="multipart/form-data">
+        <label>Nombre del Paciente:</label>
+        <input type="text" name="patient_name">
+        <label>Archivo de Audio:</label>
+        <input type="file" name="audio" accept="audio/*" required>
+        <button type="submit">Iniciar Consulta</button>
+    </form>
+
+    <h2>Generar Reporte</h2>
+    <form method="POST" action="/generate-report">
+        <label>Nombre del Paciente:</label>
+        <input type="text" name="patient_name" required>
+        <label>Formato:</label>
+        <select name="format">
+            <option value="pdf">PDF</option>
+            <option value="docx">Docx</option>
+        </select>
+        <button type="submit">Generar Reporte</button>
+    </form>
+</body>
+</html>

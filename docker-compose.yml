@@ -1,0 +1,64 @@
+version: '3'
+services:
+  auth_service:
+    build: ./auth_service
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  transcription_service:
+    build: ./transcription_service
+    ports:
+      - "5001:5001"
+    networks:
+      - app-network
+
+  analysis_service:
+    build: ./analysis_service
+    ports:
+      - "5002:5002"
+    networks:
+      - app-network
+
+  storage_service:
+    build: ./storage_service
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./storage_service/database.sqlite:/app/database.sqlite
+    networks:
+      - app-network
+
+  report_service:
+    build: ./report_service
+    ports:
+      - "5004:5004"
+    networks:
+      - app-network
+
+  api_gateway:
+    build: ./api_gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth_service
+      - transcription_service
+      - analysis_service
+      - storage_service
+      - report_service
+    networks:
+      - app-network
+
+  ui_service:
+    build: ./ui_service
+    ports:
+      - "5005:5005"
+    depends_on:
+      - api_gateway
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
