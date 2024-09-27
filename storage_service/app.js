@@ -1,11 +1,20 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const app = express();
 
 app.use(bodyParser.json());
 
-let db = new sqlite3.Database('database.sqlite');
+// Especifica una ruta absoluta para la base de datos
+const dbPath = path.resolve(__dirname, 'database.sqlite');
+let db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error("Error al abrir la base de datos:", err.message);
+    } else {
+        console.log("Conexión a la base de datos SQLite establecida.");
+    }
+});
 
 db.run(`CREATE TABLE IF NOT EXISTS histories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
