@@ -122,6 +122,24 @@
             border-left: 5px solid #c3e6cb;
             color: #155724;
         }
+
+        /* Estilos del spinner */
+        .spinner {
+            display: none;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 24px;
+            height: 24px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -177,7 +195,8 @@
                 <option value="pdf">PDF</option>
                 <option value="docx">Docx</option>
             </select>
-            <button type="submit">Generar Reporte</button>
+            <button id="generateReportButton" type="submit" onclick="showLoading()">Generar Reporte</button>
+            <div id="loadingSpinner" class="spinner"></div>
         </form>
     </div>
 
@@ -189,6 +208,15 @@
                 form.classList.remove('active');
             });
             document.getElementById(formId).classList.add('active');
+        }
+
+        // Mostrar indicador de carga
+        function showLoading() {
+            const button = document.getElementById('generateReportButton');
+            const spinner = document.getElementById('loadingSpinner');
+            
+            button.disabled = true; // Desactiva el botón mientras se genera el reporte
+            spinner.style.display = 'block'; // Muestra el spinner
         }
 
         let mediaRecorder;
@@ -214,9 +242,8 @@
                 const audioUrl = URL.createObjectURL(audioBlob);
                 audioPlayback.src = audioUrl;
 
-                // Convert the Blob into a File and
-                                // Convert the Blob into a File and set it as the input value
-                                const audioFile = new File([audioBlob], "audio.wav", { type: "audio/wav" });
+                // Convertir el Blob en un archivo y asignarlo al input file
+                const audioFile = new File([audioBlob], "audio.wav", { type: "audio/wav" });
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(audioFile);
                 audioFileInput.files = dataTransfer.files;
@@ -235,4 +262,3 @@
     </script>
 </body>
 </html>
-
