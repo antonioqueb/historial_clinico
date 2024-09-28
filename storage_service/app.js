@@ -16,14 +16,20 @@ let db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
+// Crear tabla si no existe
 db.run(`CREATE TABLE IF NOT EXISTS histories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    patient_name TEXT,
-    history TEXT
+    patient_name TEXT NOT NULL,
+    history TEXT NOT NULL
 )`);
 
+// Ruta para crear historial
 app.post('/history/create', (req, res) => {
     const { patient_name, history } = req.body;
+    if (!patient_name || !history) {
+        return res.status(400).json({ error: 'El nombre del paciente y el historial son requeridos.' });
+    }
+
     db.run(`INSERT INTO histories (patient_name, history) VALUES (?, ?)`, [patient_name, history], function(err) {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -32,16 +38,25 @@ app.post('/history/create', (req, res) => {
     });
 });
 
+// Ruta para obtener historial por nombre de paciente
 app.get('/history/get', (req, res) => {
     const { patient_name } = req.query;
+    if (!patient_name) {
+        return res.status(400).json({ error: 'El nombre del paciente es requerido.' });
+    }
+
     db.all(`SELECT * FROM histories WHERE patient_name = ?`, [patient_name], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
+        }
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'No se encontró historial para este paciente.' });
         }
         res.json({ histories: rows });
     });
 });
 
+// Iniciar el servidor
 app.listen(5003, () => {
     console.log('Storage service running on port 5003');
 });
