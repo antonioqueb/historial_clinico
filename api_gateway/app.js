@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const multer = require('multer');
 const FormData = require('form-data');
 const fs = require('fs');
-const Queue = require('bull');
+const Queue = require('bull');  // Asegúrate de importar 'bull'
 const upload = multer({ dest: 'uploads/' });
 
 const app = express();
@@ -16,14 +16,20 @@ const ANALYSIS_SERVICE_URL = 'http://analysis_service:5002';
 const STORAGE_SERVICE_URL = 'http://storage_service:5003';
 const REPORT_SERVICE_URL = 'http://report_service:5004';
 
-const reportQueue = new Queue('report generation');
+// Configurar la conexión a Redis para Bull
+const reportQueue = new Queue('report generation', {
+    redis: {
+        host: 'redis',  // Asegúrate de tener un contenedor Redis corriendo
+        port: 6379
+    }
+});
 
 app.post('/api/login', async (req, res) => {
     try {
         const response = await axios.post(`${AUTH_SERVICE_URL}/login`, req.body);
         res.json(response.data);
     } catch (error) {
-        res.status(error.response.status).json(error.response.data);
+        res.status(error.response ? error.response.status : 500).json(error.response ? error.response.data : { error: 'Error en autenticación' });
     }
 });
 
@@ -70,35 +76,54 @@ app.post('/api/generate-report', async (req, res) => {
 // Procesar los trabajos en la cola
 reportQueue.process(async (job) => {
     const { patient_name, format } = job.data;
-    // Llamada al servicio de almacenamiento para obtener el historial
-    const historyResponse = await axios.get(`${STORAGE_SERVICE_URL}/history/get`, {
-        params: { patient_name }
-    });
+    try {
+        // Llamada al servicio de almacenamiento para obtener el historial
+        const historyResponse = await axios.get(`${STORAGE_SERVICE_URL}/history/get`, {
+            params: { patient_name }
+        });
 
-    const histories = historyResponse.data.histories;
-    const latestHistory = histories[histories.length - 1];
+        const histories = historyResponse.data.histories;
+        if (histories.length === 0) {
+            throw new Error('Historial no encontrado');
+        }
 
-    // Generar el reporte
-    const reportResponse = await axios.post(`${REPORT_SERVICE_URL}/report/export`, {
-        patient_name,
-        history: latestHistory.history,
-        format
-    }, { responseType: 'stream' });
+        const latestHistory = histories[histories.length - 1];
 
-    return { report: reportResponse.data };
+        // Generar el reporte
+        const reportResponse = await axios.post(`${REPORT_SERVICE_URL}/report/export`, {
+            patient_name,
+            history: latestHistory.history,
+            format
+        }, { responseType: 'stream' });
+
+        // Guardar el reporte en el sistema de archivos o en otro servicio de almacenamiento
+        const reportPath = `/app/reports/${patient_name}_report.${format}`;
+        const writer = fs.createWriteStream(reportPath);
+        reportResponse.data.pipe(writer);
+
+        return new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+    } catch (error) {
+        console.error(`Error al procesar el reporte: ${error.message}`);
+        throw error;
+    }
 });
 
 app.get('/api/job-status/:job_id', async (req, res) => {
-    const job = await reportQueue.getJob(req.params.job_id);
+    try {
+        const job = await reportQueue.getJob(req.params.job_id);
 
-    if (job) {
-        if (job.finishedOn) {
-            return res.json({ status: 'completed' });
+        if (job) {
+            const state = await job.getState();
+            return res.json({ status: state });
         }
-        return res.json({ status: 'processing' });
-    }
 
-    return res.status(404).json({ error: 'Job not found' });
+        return res.status(404).json({ error: 'Job not found' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.listen(8080, () => {

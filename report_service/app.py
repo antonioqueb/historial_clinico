@@ -1,44 +1,33 @@
-
-# report_service\app.pyfrom flask import Flask, request, send_file, jsonify
-from fpdf import FPDF
-import tempfile
+from flask import Flask, request, jsonify, send_file
+import os
 
 app = Flask(__name__)
 
+# Ruta al directorio de reportes
+REPORTS_DIR = '/app/reports'
+
 @app.route('/report/export', methods=['POST'])
-def export():
+def export_report():
     data = request.get_json()
     patient_name = data.get('patient_name')
     history = data.get('history')
-    format_type = data.get('format')  # 'pdf', 'docx', 'print'
+    format_type = data.get('format')
 
-    if not patient_name or not history:
-        return jsonify({'error': 'Datos insuficientes'}), 400
+    if not patient_name or not history or not format_type:
+        return jsonify({'error': 'Datos incompletos para generar el reporte'}), 400
 
-    if format_type == 'pdf':
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Historial Médico de {patient_name}", ln=True, align='C')
-        pdf.multi_cell(0, 10, txt=history)
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-            pdf.output(tmp.name)
-            return send_file(tmp.name, as_attachment=True, attachment_filename=f"Historial_{patient_name}.pdf")
+    # Lógica para generar el reporte
+    report_filename = f"{patient_name}_report.{format_type}"
+    report_path = os.path.join(REPORTS_DIR, report_filename)
 
-    elif format_type == 'docx':
-        from docx import Document
-        document = Document()
-        document.add_heading(f'Historial Médico de {patient_name}', 0)
-        document.add_paragraph(history)
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-            document.save(tmp.name)
-            return send_file(tmp.name, as_attachment=True, attachment_filename=f"Historial_{patient_name}.docx")
+    # Simulación de generación de reporte
+    with open(report_path, 'w') as f:
+        f.write(f"Reporte de {patient_name}\n\nHistorial:\n{history}")
 
-    elif format_type == 'print':
-        # Lógica para imprimir directamente
-        return jsonify({'message': 'Enviado a imprimir'}), 200
-    else:
-        return jsonify({'error': 'Formato no soportado'}), 400
+    # Enviar el archivo generado
+    return send_file(report_path, as_attachment=True, attachment_filename=report_filename)
 
 if __name__ == '__main__':
+    # Asegurarse de que el directorio de reportes exista
+    os.makedirs(REPORTS_DIR, exist_ok=True)
     app.run(host='0.0.0.0', port=5004)
