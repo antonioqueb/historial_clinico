@@ -36,7 +36,7 @@ def export_report():
 
             # Enviar el archivo generado
             app.logger.info(f"Enviando reporte generado: {report_filename}")
-            return send_file(report_path, as_attachment=True, attachment_filename=report_filename)
+            return send_file(report_path, as_attachment=True, download_name=report_filename)
 
         except Exception as e:
             app.logger.error(f"Error al generar el archivo de reporte: {str(e)}")
