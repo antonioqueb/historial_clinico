@@ -13,6 +13,7 @@ def export_report():
     history = data.get('history')
     format_type = data.get('format')
 
+    # Verificar si se proporcionaron todos los datos necesarios
     if not patient_name or not history or not format_type:
         return jsonify({'error': 'Datos incompletos para generar el reporte'}), 400
 
@@ -20,12 +21,20 @@ def export_report():
     report_filename = f"{patient_name}_report.{format_type}"
     report_path = os.path.join(REPORTS_DIR, report_filename)
 
-    # Simulación de generación de reporte
-    with open(report_path, 'w') as f:
-        f.write(f"Reporte de {patient_name}\n\nHistorial:\n{history}")
+    try:
+        # Simulación de generación de reporte
+        with open(report_path, 'w') as f:
+            f.write(f"Reporte de {patient_name}\n\nHistorial:\n{history}")
 
-    # Enviar el archivo generado
-    return send_file(report_path, as_attachment=True, attachment_filename=report_filename)
+        # Verificar que el archivo se generó correctamente
+        if not os.path.exists(report_path):
+            return jsonify({'error': 'No se pudo generar el reporte'}), 500
+
+        # Enviar el archivo generado
+        return send_file(report_path, as_attachment=True, attachment_filename=report_filename)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Asegurarse de que el directorio de reportes exista
